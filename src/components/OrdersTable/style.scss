@@ -1,0 +1,25 @@
+.orders-table {
+    padding: 15px;
+
+    .table-cell {
+        .in_delivery {
+            color: #129811 !important;
+        }
+
+        .over_delivery {
+            color: #f1c40f !important;
+        }
+
+        .completed {
+            color: #3f51b5 !important;
+        }
+
+        .in_dispute {
+            color: #ee8d8a;
+        }
+
+        button {
+            text-transform: none;
+        }
+    }
+}

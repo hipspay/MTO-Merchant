@@ -1,0 +1,13 @@
+.products-page {
+  padding: 15px;
+
+  .page-head {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 0;
+
+    button {
+      text-transform: none;
+    }
+  }
+}

@@ -1,0 +1,25 @@
+.disputes-table {
+  padding: 15px;
+
+  .table-cell {
+    .init {
+      color: #7e7c7c;
+    }
+
+    .waiting {
+      color: #0353c6;
+    }
+
+    .review {
+      color: #e5ad05;
+    }
+
+    .fail {
+      color: #f51106;
+    }
+
+    .win {
+      color: #25F505;
+    }
+  }
+}

@@ -1,0 +1,32 @@
+.app-header {
+  height: 56px;
+  padding: 0 15px;
+  background-color: white;
+  box-shadow: 0 5px 10px rgba(0,0,0,.02);
+
+  .container {
+    height: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .toggle-btn {
+      background-color: rgba(0, 0, 0, 0.04);
+      min-width: unset;
+    }
+
+    .connect-btn{
+      background-color: #0665d0;
+      border: 1px solid #0665d0;
+      padding: 10px 20px;
+      border-radius: 10px;
+      width: fit-content;
+      cursor: pointer;
+      color: white;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+  }
+}

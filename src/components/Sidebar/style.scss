@@ -1,0 +1,56 @@
+.app-sidebar {
+  height: 100%;
+  width: 250px;
+  color: #e4e9f3;
+  background-color: #343a40;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  &.opened {
+    margin-left: 0;
+  }
+
+  &.closed {
+    margin-left: -250px;
+  }
+
+  .logo {
+    height: 56px;
+    background-color: #0665d0;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    font-size: 20px;
+  }
+
+  .nav {
+    padding: 18px 10px 1px;
+    display: flex;
+    flex-direction: column;
+
+    .nav-link {
+      padding: 10px 12px;
+      text-decoration: none;
+      color: #e4e9f3;
+      display: flex;
+      align-items: center;
+      border-radius: 5px;
+      margin-bottom: 5px;
+
+      &.active {
+        background-color: rgba(0, 0, 0, 0.2);
+        color: white;
+      }
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+        color: white;
+      }
+
+      svg {
+        margin-right: 10px;
+      }
+    }
+  }
+}

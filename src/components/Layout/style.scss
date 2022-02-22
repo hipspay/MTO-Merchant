@@ -1,0 +1,13 @@
+.app-container {
+  display: flex;
+  height: 100vh;
+
+  .main-view {
+    flex: 1;
+
+    .main-content {
+      height: calc(100vh - 56px);
+      overflow: auto;
+    }
+  }
+}

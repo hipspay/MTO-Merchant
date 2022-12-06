@@ -8,12 +8,13 @@ import ProductDialog from '../../components/products/ProductDialog';
 import ConfirmDialog from '../../components/Common/ComfirmDialog';
 import Spinner from '../../components/Common/Spinner';
 import { parseDate } from '../../utils';
+import { useSelector } from 'react-redux';
 
-import {
-    getProduct,
-    updateProduct,
-    removeProduct,
-} from '../../apis/products.api';
+// import {
+//     getProduct,
+//     updateProduct,
+//     removeProduct,
+// } from '../../apis/products.api';
 
 import './style.scss';
 
@@ -23,39 +24,38 @@ const ProductDetailPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isOpenConfirmDialog, setIsOpenConfirmDialog] = useState(false);
-
-    const fetchData = useCallback(() => {
+    const bkdDriver = useSelector((state) => state.driverObject.bkdDriver);
+    const fetchData = useCallback(async () => {
+        if (!bkdDriver || !bkdDriver.headers)
+            return;
         setIsLoading(true);
         const id = history.location.pathname.split('/products/')[1];
-        getProduct(id)
-            .then((res) => {
-                setData(res.data);
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
-    }, [history.location.pathname]);
+        const res = await bkdDriver.getProductById(id);
+        setData(res);
+        setIsLoading(false);
+    }, [history.location.pathname, bkdDriver]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData, history.location.pathname]);
 
-    const update = (values) => {
+    const update = async (values) => {
+        if (!bkdDriver || !bkdDriver.headers)
+            return;
         setIsEditMode(false);
         setIsLoading(true);
-        updateProduct(data.id, values)
-            .then((res) => {
-                setData(res.data);
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
+        const res = await bkdDriver.updateProduct(data.id, values);
+        setData(res);
+        setIsLoading(false);
     };
 
     const remove = () => {
+        if (!bkdDriver || !bkdDriver.headers)
+            return;
+            
         setIsOpenConfirmDialog(false);
         setIsLoading(true);
-        removeProduct(data.id).then(() => {
+        bkdDriver.deleteProduct(data.id).then(() => {
             setIsLoading(false);
             history.push('/products');
         });

@@ -14,6 +14,8 @@ import { ImageSearch } from '@material-ui/icons';
 import Dropzone from 'react-dropzone';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
+import S3 from "react-aws-s3";
+import { v4 as uuidv4 } from 'uuid';
 
 import './style.scss';
 
@@ -24,12 +26,47 @@ const validationSchema = Yup.object().shape({
     description: Yup.string().required('Please enter description'),
 });
 
-const ProductDialog = ({ open, onClose, handler, data }) => {
+const ProductDialog = ({ open, onClose, handler, data, setIsLoading }) => {
     const [image, setImage] = useState(null);
+    const [imageUrl, setImageUrl] = useState('');
 
-    const changeImage = (value) => {
-        setImage(value[0]);
+    const changeImage = (files) => {
+        setImage(files[0]);
+        setIsLoading(true);
+        let file = files[0];
+        // let newFileName = files[0].name.replace(/\..+$/, "");
+        let newFileName = uuidv4();
+        const config = {
+        bucketName: process.env.REACT_APP_BUCKET_NAME,      
+        region: process.env.REACT_APP_REGION,
+        accessKeyId: process.env.REACT_APP_ACCESS_ID,
+        secretAccessKey: process.env.REACT_APP_ACCESS_KEY,
+        };
+        console.log('config', config);
+        const ReactS3Client = new S3(config);
+        try {
+        
+        ReactS3Client.uploadFile(file, newFileName).then((data) => {
+            console.log(data);
+            if (data.status === 204) {
+                console.log("success");
+                setImageUrl(data.location);
+
+            } else {
+            console.log("fail");
+            }
+            setIsLoading(false);
+        }).catch(error => {
+            console.log('error1', error);
+            setIsLoading(false);
+        });
+        } catch(error) {
+            console.log('error2', error);
+            setIsLoading(false);
+        }
     };
+
+    
 
     const initialValues = useMemo(
         () => ({
@@ -42,6 +79,7 @@ const ProductDialog = ({ open, onClose, handler, data }) => {
     );
 
     const handleSave = (values) => {
+        values['image'] = imageUrl;
         handler(values);
     };
 

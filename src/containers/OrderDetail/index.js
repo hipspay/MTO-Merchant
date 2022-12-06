@@ -7,8 +7,8 @@ import { useSelector } from 'react-redux';
 import Layout from '../../components/Layout';
 import Spinner from '../../components/Common/Spinner';
 import { orderStatus, getOrderStatus } from '../../constants';
-import { getOrder } from '../../apis/orders.api';
-import escrowABI from '../../constants/escrowABI.json';
+// import { getOrder } from '../../apis/orders.api';
+// import escrowABI from '../../constants/escrowABI.json';
 
 import { parseDate } from '../../utils/index';
 
@@ -19,40 +19,54 @@ const OrderDetailPage = () => {
     const [isLoading, setIsLoading] = useState();
     const [remainTime, setRemainTime] = useState('');
     const history = useHistory();
+    const bkdDriver = useSelector((state) => state.driverObject.bkdDriver);
+    const scDriver = useSelector((state) => state.driverObject.scDriver);
 
-    const [escrowContract, setEscrowContract] = useState('');
+    // const [escrowContract, setEscrowContract] = useState('');
 
     const [escrowResult, setEscrowResult] = useState('');
 
-    const { web3object, metaMaskAddress, web3connected } = useSelector(
-        (state) => state.web3
-    );
-    React.useEffect(() => {
-        if (web3connected) {
-            const EscrowContract = new web3object.eth.Contract(
-                escrowABI,
-                process.env.REACT_APP_ESCROW_CONTRACT_ADDRESS
-            );
-            // getEscrowData(EscrowContract);
-            setEscrowContract(EscrowContract);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [web3connected]);
+    // const { web3object, metaMaskAddress, web3connected } = useSelector(
+    //     (state) => state.web3
+    // );
+    // React.useEffect(() => {
+    //     if (web3connected) {
+    //         const EscrowContract = new web3object.eth.Contract(
+    //             escrowABI,
+    //             process.env.REACT_APP_ESCROW_CONTRACT_ADDRESS
+    //         );
+    //         setEscrowContract(EscrowContract);
+    //     }
+    //     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // }, [web3connected]);
 
-    const getEscrowData = async (escrowContract) => {
-        const res = await escrowContract.methods.escrows(data.escrowId).call();
+    const getEscrowData = async () => {
+
+        const res = await scDriver.getEscrowById(data.escrowId);
+        // const res = await escrowContract.methods.escrows(data.escrowId).call();
         if (res) {
-            setEscrowResult(res);
+            const escrowJson = {
+                amount: res.amount.toString(),
+                buyerAddress: res.buyerAddress.toString(),
+                merchantAddress: res.merchantAddress.toString(),
+                productId: res.productId.toString(),
+                escrowWithdrawableTime: res.escrowWithdrawableTime.toString(),
+                escrowDisputableTime: res.escrowDisputableTime.toString(),
+                status: res.status.toString(),
+                createdAt: res.createdAt.toString(),
+            }
+            console.log('EscrowContract', escrowJson);
+            setEscrowResult(escrowJson);
         }
-        console.log('EscrowContract', res);
+        
     };
 
     useEffect(() => {
-        if (escrowContract && data) {
-            getEscrowData(escrowContract);
+        if (scDriver && data) {
+            getEscrowData();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [escrowContract, data]);
+    }, [scDriver, data]);
 
     useEffect(() => {
         if (!data) {
@@ -79,15 +93,14 @@ const OrderDetailPage = () => {
         };
     }, [data]);
 
-    const getOrderData = () => {
+    const getOrderData = async () => {
+        if (!bkdDriver || !bkdDriver.headers)
+            return;
+
         const id = history.location.pathname.split('/orders/')[1];
-        getOrder(id)
-            .then((res) => {
-                setData(res.data);
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
+        const res = await bkdDriver.getOrderById(id);
+        setData(res);
+        setIsLoading(false);
     };
 
     useEffect(() => {
@@ -99,25 +112,33 @@ const OrderDetailPage = () => {
     const withdrawOrder = async () => {
         setIsLoading(true);
         try {
-            const result = await escrowContract.methods
-                .withdraw(data.escrowId)
-                .send({ from: metaMaskAddress });
 
-            // getEscrowData(escrowContract);
-            const { transactionHash: transactionHashPurchase } = result;
-            const purchaseReceipt = await web3object.eth.getTransactionReceipt(
-                transactionHashPurchase
-            );
-            const blockLog = purchaseReceipt.logs.filter(
-                (elem) =>
-                    elem.address ===
-                    process.env.REACT_APP_ESCROW_CONTRACT_ADDRESS
-            )[0];
-            const pastEvents = await escrowContract.getPastEvents('allEvents', {
-                fromBlock: blockLog.blockNumber,
-                toBlock: blockLog.blockNumber,
-            });
-            console.log(pastEvents);
+
+            // const result = await escrowContract.methods
+            //     .withdraw(data.escrowId)
+            //     .send({ from: metaMaskAddress });
+
+            // const { transactionHash: transactionHashPurchase } = result;
+            // const purchaseReceipt = await web3object.eth.getTransactionReceipt(
+            //     transactionHashPurchase
+            // );
+            // const blockLog = purchaseReceipt.logs.filter(
+            //     (elem) =>
+            //         elem.address ===
+            //         process.env.REACT_APP_ESCROW_CONTRACT_ADDRESS
+            // )[0];
+            // const pastEvents = await escrowContract.getPastEvents('allEvents', {
+            //     fromBlock: blockLog.blockNumber,
+            //     toBlock: blockLog.blockNumber,
+            // });
+
+            const withdraw = await scDriver.withdraw(data.escrowId);
+            const withdrawReceipt = await withdraw.wait();
+            console.log(' withdrawReceipt', withdrawReceipt);
+
+            const withdrawEvents = withdrawReceipt.events?.filter((x) => x.event === "Withdraw");
+            
+            console.log(withdrawEvents);
             getOrderData();
             setIsLoading(false);
         } catch (error) {

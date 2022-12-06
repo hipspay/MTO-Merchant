@@ -8,8 +8,10 @@ import Layout from '../../components/Layout';
 import ProductsTable from '../../components/products/ProductsTable';
 import ProductDialog from '../../components/products/ProductDialog';
 import Spinner from '../../components/Common/Spinner';
-import { getProducts, createProduct } from '../../apis/products.api';
+// import { getProducts, createProduct } from '../../apis/products.api';
 import './style.scss';
+import { useSelector } from 'react-redux';
+
 
 const productTableColumns = [
     {
@@ -40,12 +42,15 @@ function ProductsPage() {
 
     const [isOpenCreateDialog, setIsOpenCreateDialog] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const bkdDriver = useSelector((state) => state.driverObject.bkdDriver);
 
     const showDetail = (id) => {
         history.push(`/products/${id}`);
     };
 
-    const fetchProducts = useCallback(() => {
+    const fetchProducts = useCallback(async () => {
+        if (!bkdDriver || !bkdDriver.headers)
+            return;
         setIsLoading(true);
         const query = {
             page,
@@ -54,25 +59,25 @@ function ProductsPage() {
             order: 'DESC',
         };
 
-        getProducts(query)
-            .then((res) => {
-                setProducts(res.data.products);
-                setTotalCount(res.data.totalCount);
-            })
-            .catch((err) => {
-                setProducts([]);
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
-    }, [page, pageSize]);
+        const res = await bkdDriver.getProducts(query);
+        console.log('products', res);
+        if (res) {
+            setProducts(res.products);
+            setTotalCount(res.totalCount);
+        } else {
+            setProducts([]);
+        }
+        setIsLoading(false);
+    }, [page, pageSize, bkdDriver]);
 
-    const handleCreate = (values) => {
+    const handleCreate = async (values) => {
+        if (!bkdDriver || !bkdDriver.headers)
+        return;
         setIsLoading(true);
         setIsOpenCreateDialog(false);
-        createProduct(values).then((res) => {
-            fetchProducts();
-        });
+
+        await bkdDriver.createProduct(values);
+        fetchProducts();
     };
 
     useEffect(() => {
@@ -110,6 +115,7 @@ function ProductsPage() {
                     open={isOpenCreateDialog}
                     onClose={() => setIsOpenCreateDialog(false)}
                     handler={handleCreate}
+                    setIsLoading={setIsLoading}
                 />
 
                 {isLoading && (

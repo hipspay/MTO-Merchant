@@ -5,52 +5,95 @@ import Dropzone from 'react-dropzone';
 
 import Layout from '../../components/Layout';
 import Spinner from '../../components/Common/Spinner';
-import { getProfile, updateProfile } from '../../apis/profile.api';
+// import { getProfile, updateProfile } from '../../apis/profile.api';
 import './style.scss';
+import { useSelector } from 'react-redux';
+import S3 from "react-aws-s3";
+import { v4 as uuidv4 } from 'uuid';
 
 const ProfilePage = () => {
     const [data, setData] = useState({});
-
-    useEffect(() => {
-        setIsLoading(true);
-        getProfile()
-            .then((res) => {
-                setData(res.data);
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
-    }, []);
-
     const [isEditingMode, setIsEditingMode] = useState(false);
     const [name, setName] = useState('');
     const [avatar, setAvatar] = useState(null);
     const [shippingAddress, setShippingAddress] = useState('');
     const [externalLink, setExternalLink] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const bkdDriver = useSelector((state) => state.driverObject.bkdDriver);
 
-    const changeAvatar = (value) => {
-        setAvatar(value[0]);
+    const profile = async () => {
+        if (!bkdDriver || !bkdDriver.headers)
+            return;
+        setIsLoading(true);
+        const res = await bkdDriver.getProfile();
+        setAvatar(res.image);
+        setData(res);
+        setIsLoading(false);
+    }
+    useEffect(() => {
+       profile();
+    }, [bkdDriver]);
+
+    
+
+    const changeAvatar = (files) => {
+        setIsLoading(true);
+        let file = files[0];
+        // let newFileName = files[0].name.replace(/\..+$/, "");
+        let newFileName = uuidv4();
+        const config = {
+        bucketName: process.env.REACT_APP_BUCKET_NAME,      
+        region: process.env.REACT_APP_REGION,
+        accessKeyId: process.env.REACT_APP_ACCESS_ID,
+        secretAccessKey: process.env.REACT_APP_ACCESS_KEY,
+        };
+        console.log('config', config);
+        const ReactS3Client = new S3(config);
+        try {
+        
+        ReactS3Client.uploadFile(file, newFileName).then((data) => {
+            console.log(data);
+            if (data.status === 204) {
+                console.log("success");
+                setAvatar(data.location);
+
+            } else {
+            console.log("fail");
+            }
+            setIsLoading(false);
+        }).catch(error => {
+            console.log('error1', error);
+            setIsLoading(false);
+        });
+        } catch(error) {
+            console.log('error2', error);
+            setIsLoading(false);
+        }
+
     };
 
     useEffect(() => {
-        if (isEditingMode) {
+        if (isEditingMode && data) {
             setName(data.name);
             setShippingAddress(data.shippingAddress);
             setExternalLink(data.externalLink);
         }
-    }, [data.externalLink, data.name, data.shippingAddress, isEditingMode]);
+    }, [data?.externalLink, data?.name, data?.shippingAddress, isEditingMode]);
 
-    const update = () => {
+    const update = async () => {
+        if (!bkdDriver || !bkdDriver.headers)
+            return;
+
         setIsLoading(true);
-        updateProfile({ name, shippingAddress, externalLink })
-            .then((res) => {
-                setData(res.data);
-            })
-            .finally(() => {
-                setIsLoading(false);
-                setIsEditingMode(false);
-            });
+
+        const data = { name, shippingAddress, externalLink, image: avatar};
+        console.log(data);
+        const updateResult = await bkdDriver.updateProfile(data);
+        console.log('updateProfile', updateResult);
+        setAvatar(updateResult.image);
+        setData(updateResult);
+        setIsLoading(false);
+        setIsEditingMode(false);
     };
 
     return (
@@ -67,7 +110,7 @@ const ProfilePage = () => {
                                 onDrop={changeAvatar}
                             >
                                 {avatar ? (
-                                    <img src={avatar.preview} alt="" />
+                                    <img src={avatar} alt="" />
                                 ) : (
                                     <Button className="choose-btn">
                                         Choose Image
@@ -75,7 +118,11 @@ const ProfilePage = () => {
                                 )}
                             </Dropzone>
                         ) : (
-                            <AccountCircle />
+                            <>{avatar ? 
+                                    <img className='user_image' src={avatar} alt="" />
+                                 : <AccountCircle />}
+                            </>
+                            
                         )}
                     </div>
 
@@ -88,7 +135,7 @@ const ProfilePage = () => {
                         />
                     ) : (
                         <div className="name">
-                            <span>{data.name}</span>
+                            <span>{data?.name}</span>
                         </div>
                     )}
                 </div>
@@ -102,7 +149,7 @@ const ProfilePage = () => {
                             onChange={(e) => setShippingAddress(e.target.value)}
                         />
                     ) : (
-                        <p>{data.shippingAddress}</p>
+                        <p>{data?.shippingAddress}</p>
                     )}
                 </div>
 
@@ -115,7 +162,7 @@ const ProfilePage = () => {
                             onChange={(e) => setExternalLink(e.target.value)}
                         />
                     ) : (
-                        <a href={data.externalLink}>{data.externalLink}</a>
+                        <a href={data?.externalLink}>{data?.externalLink}</a>
                     )}
                 </div>
 

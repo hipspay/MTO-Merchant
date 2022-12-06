@@ -6,7 +6,7 @@ import { useHistory } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
 
 import Web3 from 'web3';
-import { auth, profile } from '../../apis/auth.api';
+// import { auth, profile } from '../../apis/auth.api';
 
 import {
     setWeb3Data,
@@ -25,8 +25,10 @@ import useAuth from '../ConnectButton/useAuth';
 import { networks } from '../../constants/networks';
 // import { UserService } from "../../services/user.service";
 import { setUserData } from '../../store/actions/authAction';
+import { setBkdDriver, setScDriver } from '../../store/actions/driverAction';
 import { setChatJWT, setMainJWT } from '../../store/actions/jwtAction';
-
+import { MerchantDriver } from "mto-metamask-backend-driver";
+import { MTOMetamaskDriver } from "mto-metamask-driver";
 import './style.scss';
 
 const Header = ({ toggleSidebar }) => {
@@ -42,6 +44,8 @@ const Header = ({ toggleSidebar }) => {
     const metaMaskAddress = useSelector((state) => state.web3.metaMaskAddress);
     const web3Object = useSelector((state) => state.web3.web3object);
     const network = useSelector((state) => state.web3.network);
+    const bkdDriver = useSelector((state) => state.driverObject.bkdDriver);
+
 
     useEffect(() => {
         const savedNetwork = JSON.parse(
@@ -114,11 +118,11 @@ const Header = ({ toggleSidebar }) => {
                 await web3.eth.getBalance(accounts[0]),
                 'ether'
             );
-
             if (
                 sessionStorage.getItem('userAccount') &&
                 sessionStorage.getItem('userAccount').toLowerCase() ===
-                    accounts[0].toLowerCase()
+                    accounts[0].toLowerCase() &&
+                    bkdDriver?.headers
             ) {
                 dispatch(Web3Object(web3));
                 dispatch(web3Connected(true));
@@ -133,13 +137,34 @@ const Header = ({ toggleSidebar }) => {
                 return;
             }
 
-            const signature = await web3.eth.personal.sign(
-                process.env.REACT_APP_SIGN_STRING,
-                accounts[0]
-            );
-            const result = await auth(signature);
-            if (result) {
-                localStorage.setItem('token', result.data.token);
+            console.log('accounts', accounts);
+            const _bkdDriver = new MerchantDriver({
+                appKey: process.env.REACT_APP_APPKEY,
+                baseUrl: process.env.REACT_APP_API
+              });
+
+            console.log('_bkdDriver', _bkdDriver);
+
+            await _bkdDriver.init();
+            
+            console.log('_bkdDriver1', _bkdDriver)
+            dispatch(setBkdDriver(_bkdDriver));
+
+            const _scDriver = new MTOMetamaskDriver({
+                blockchain: network.blockchain,
+            });
+            await _scDriver.init();
+
+            console.log('_scDriver', _scDriver)
+            dispatch(setScDriver(_scDriver));
+
+            // const signature = await web3.eth.personal.sign(
+            //     process.env.REACT_APP_SIGN_STRING,
+            //     accounts[0]
+            // );
+            // const result = await auth(signature);
+            // if (result) {
+            //     localStorage.setItem('token', result.data.token);
                 sessionStorage.setItem(
                     'userBalance',
                     Number(ethers).toFixed(2)
@@ -157,7 +182,7 @@ const Header = ({ toggleSidebar }) => {
                         account: accounts[0],
                     })
                 );
-            }
+            // }
         } catch (error) {
             console.log(error);
             if (error && error.code === 4001) {
@@ -192,16 +217,21 @@ const Header = ({ toggleSidebar }) => {
     };
 
     const getProfile = async () => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            const result = await profile();
-            console.log(result.data);
+        // const token = localStorage.getItem('token');
+        // if (token) {
+        //     const result = await profile();
+        //     console.log(result.data);
+        // }
+
+        if (bkdDriver?.headers){
+            const profile = await bkdDriver.getProfile();
+            console.log('profile', profile);
         }
     };
 
     React.useEffect(() => {
         getProfile();
-    }, []);
+    }, [bkdDriver]);
 
     return (
         <div className="app-header">

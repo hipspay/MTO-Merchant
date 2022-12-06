@@ -50,7 +50,11 @@ const UnlockButton = (props) => {
         <>
             <button
                 className="connect-btn"
-                onClick={() => setShowWalletConnectDialog(true)}
+                onClick={() => {
+                    console.log('setShowWalletConnectDialog')
+                    setShowWalletConnectDialog(true)
+                    }
+                }
                 id="connectButton"
             >
                 Connect Wallet
